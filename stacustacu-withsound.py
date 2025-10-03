@@ -4,7 +4,7 @@ import sys
 import requests
 import tempfile
 import os
-from playsound import playsound
+import pygame
 
 lock = Lock()
 
@@ -55,18 +55,20 @@ def play_from_url(url):
         tmp_path = tmp.name
 
     try:
-        playsound(tmp_path)
+        pygame.mixer.init()
+        pygame.mixer.music.load(tmp_path)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            time.sleep(0.1)
     finally:
         os.remove(tmp_path)
 
 if __name__ == "__main__":
     url = "https://github.com/galihrhgnwn/Template-coding-gabut/raw/refs/heads/main/lukman.juventino_2025-10-03-16-34-38_1759484078922%20(audio-extractor.net).mp3"
     
-    # jalanin audio di thread terpisah biar barengan sama lirik
     t_audio = Thread(target=play_from_url, args=(url,))
     t_audio.start()
     
-    # mulai lirik
     sing_song()
     
     t_audio.join()
