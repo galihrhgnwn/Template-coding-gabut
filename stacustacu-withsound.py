@@ -46,7 +46,6 @@ def sing_song():
         thread.join()
 
 def play_from_url(url):
-    # download audio ke file sementara
     resp = requests.get(url, stream=True)
     resp.raise_for_status()
 
@@ -55,30 +54,43 @@ def play_from_url(url):
             tmp.write(chunk)
         tmp_path = tmp.name
 
+    player = None
     try:
-        # mainin audio pakai VLC
         player = vlc.MediaPlayer(tmp_path)
         player.play()
         
-        # tunggu sampe audio selesai
-        duration = player.get_length() / 1000  # ms ke detik
-        if duration <= 0:
-            time.sleep(1)
-            duration = player.get_length() / 1000
+        # tunggu sampai audio benar-benar mulai (VLC_STATE_PLAYING)
+        max_wait = 5  # detik
+        start_time = time.time()
+        while player.get_state() != vlc.State.Playing:
+            if time.time() - start_time > max_wait:
+                break
+            time.sleep(0.1)
         
-        time.sleep(duration + 1)
-    finally:
-        player.stop()
+        # baru return player biar bisa dipakai sinkronisasi
+        return player, tmp_path
+    except Exception as e:
+        print("Error:", e)
+        if player:
+            player.stop()
         os.remove(tmp_path)
+        return None, None
 
 if __name__ == "__main__":
     url = "https://github.com/galihrhgnwn/Template-coding-gabut/raw/refs/heads/main/lukman.juventino_2025-10-03-16-34-38_1759484078922%20(audio-extractor.net).mp3"
     
-    # jalanin audio di thread
-    t_audio = Thread(target=play_from_url, args=(url,))
-    t_audio.start()
-    
-    # jalanin lirik
-    sing_song()
-    
-    t_audio.join()
+    # jalankan audio
+    player, tmp_path = play_from_url(url)
+    if player:
+        # setelah audio benar-benar mulai, baru mulai tampilkan lirik
+        sing_song()
+        
+        # tunggu sampai audio selesai
+        duration = player.get_length() / 1000
+        if duration <= 0:
+            time.sleep(1)
+            duration = player.get_length() / 1000
+        time.sleep(duration + 1)
+        
+        player.stop()
+        os.remove(tmp_path)
