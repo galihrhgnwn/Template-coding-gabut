@@ -4,7 +4,7 @@ import sys
 import requests
 import tempfile
 import os
-from playsound import playsound
+import vlc
 
 lock = Lock()
 
@@ -46,6 +46,7 @@ def sing_song():
         thread.join()
 
 def play_from_url(url):
+    # download audio ke file sementara
     resp = requests.get(url, stream=True)
     resp.raise_for_status()
 
@@ -55,8 +56,19 @@ def play_from_url(url):
         tmp_path = tmp.name
 
     try:
-        playsound(tmp_path)
+        # mainin audio pakai VLC
+        player = vlc.MediaPlayer(tmp_path)
+        player.play()
+        
+        # tunggu sampe audio selesai
+        duration = player.get_length() / 1000  # ms ke detik
+        if duration <= 0:
+            time.sleep(1)
+            duration = player.get_length() / 1000
+        
+        time.sleep(duration + 1)
     finally:
+        player.stop()
         os.remove(tmp_path)
 
 if __name__ == "__main__":
